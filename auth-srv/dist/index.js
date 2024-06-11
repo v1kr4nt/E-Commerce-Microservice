@@ -52,7 +52,7 @@ app.post("/auth/login", (req, res) => __awaiter(void 0, void 0, void 0, function
         });
     }
 }));
-app.post("/auth/regiter", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.post("/auth/register", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password, name } = req.body;
     const userExists = yield User_1.default.findOne({ email });
     if (userExists) {

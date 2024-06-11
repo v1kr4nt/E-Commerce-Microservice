@@ -42,7 +42,7 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
-app.post("/auth/regiter", async (req, res) => {
+app.post("/auth/register", async (req, res) => {
   const { email, password, name } = req.body;
 
   const userExists = await User.findOne({ email });

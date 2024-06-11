@@ -9,7 +9,7 @@ const app = express();
 const PORT = process.env.PORT_TWO || 8080;
 app.use(express.json());
 
-var channel, connection;
+var channel: any, connection;
 
 mongoose
   .connect("mongodb://127.0.0.1:27017/product-srv")
@@ -37,10 +37,27 @@ app.post("/product/create", isAuthenticated, async (req, res) => {
     description,
     price,
   });
+  newProduct.save();
   return res.json(newProduct);
 });
 
 //buy a product
+// user sends a list of product ids to buy
+// creating an order with those products and total value of sum of products prices
+
+app.post("/product/buy", isAuthenticated, async (req: any, res) => {
+  const { ids } = req.body;
+  const products = await Product.find({ _id: { $in: ids } });
+  channel.sendToQueue(
+    "ORDER",
+    Buffer.from(
+      JSON.stringify({
+        products,
+        userEmail: req.user.email,
+      })
+    )
+  );
+});
 
 app.listen(PORT, () => {
   console.log(`Product-srv at port: ${PORT}`);

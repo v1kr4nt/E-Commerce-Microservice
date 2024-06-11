@@ -15,16 +15,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const amqplib_1 = __importDefault(require("amqplib"));
-const Product_1 = __importDefault(require("./models/Product"));
-const isAuthenticated_1 = require("./isAuthenticated");
 const app = (0, express_1.default)();
-const PORT = process.env.PORT_TWO || 8080;
+const PORT = process.env.PORT_TWO || 9090;
 app.use(express_1.default.json());
 var channel, connection;
 mongoose_1.default
-    .connect("mongodb://127.0.0.1:27017/product-srv")
+    .connect("mongodb://127.0.0.1:27017/order-srv")
     .then(() => {
-    console.log("product-srv DB connected");
+    console.log("order-srv DB connected");
 })
     .catch((err) => {
     console.error(err);
@@ -34,32 +32,16 @@ function connectmq() {
         const amqpServer = "amqp://localhost:5672";
         connection = yield amqplib_1.default.connect(amqpServer);
         channel = yield connection.createChannel();
-        yield channel.assertQueue("PRODUCT");
+        yield channel.assertQueue("ORDER");
     });
 }
-connectmq();
-//create a new product
-app.post("/product/create", isAuthenticated_1.isAuthenticated, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { name, description, price } = req.body;
-    const newProduct = new Product_1.default({
-        name,
-        description,
-        price,
+connectmq().then(() => {
+    channel.consume("ORDER", (data) => {
+        const { products, userEmail } = JSON.parse(data.content);
+        console.log("Consuming ORDER queue");
+        console.log(products);
     });
-    newProduct.save();
-    return res.json(newProduct);
-}));
-//buy a product
-// user sends a list of product ids to buy
-// creating an order with those products and total value of sum of products prices
-app.post("/product/buy", isAuthenticated_1.isAuthenticated, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { ids } = req.body;
-    const products = yield Product_1.default.find({ _id: { $in: ids } });
-    channel.sendToQueue("ORDER", Buffer.from(JSON.stringify({
-        products,
-        userEmail: req.user.email,
-    })));
-}));
+});
 app.listen(PORT, () => {
-    console.log(`Product-srv at port: ${PORT}`);
+    console.log(`Order-srv at port: ${PORT}`);
 });
