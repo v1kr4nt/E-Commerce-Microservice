@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const amqplib_1 = __importDefault(require("amqplib"));
+const Order_1 = __importDefault(require("./models/Order"));
 const app = (0, express_1.default)();
 const PORT = process.env.PORT_TWO || 9090;
 app.use(express_1.default.json());
@@ -35,11 +36,25 @@ function connectmq() {
         yield channel.assertQueue("ORDER");
     });
 }
+function createOrder(products, userEmail) {
+    let total_price = 0;
+    for (let i = 0; i < products.length; i++) {
+        total_price += products[i].price;
+    }
+    const newOrder = new Order_1.default({
+        products,
+        user: userEmail,
+        total_price,
+    });
+    newOrder.save();
+    return newOrder;
+}
 connectmq().then(() => {
     channel.consume("ORDER", (data) => {
         const { products, userEmail } = JSON.parse(data.content);
-        console.log("Consuming ORDER queue");
-        console.log(products);
+        const newOrder = createOrder(products, userEmail);
+        channel.ack(data);
+        channel.sendToQueue("PRODUCT", Buffer.from(JSON.stringify({ newOrder })));
     });
 });
 app.listen(PORT, () => {

@@ -27,11 +27,26 @@ async function connectmq() {
   await channel.assertQueue("ORDER");
 }
 
+function createOrder(products: any, userEmail: String) {
+  let total_price = 0;
+  for (let i = 0; i < products.length; i++) {
+    total_price += products[i].price;
+  }
+  const newOrder: any = new Order({
+    products,
+    user: userEmail,
+    total_price,
+  });
+  newOrder.save();
+  return newOrder;
+}
+
 connectmq().then(() => {
   channel.consume("ORDER", (data: any) => {
     const { products, userEmail } = JSON.parse(data.content);
-    console.log("Consuming ORDER queue");
-    console.log(products);
+    const newOrder = createOrder(products, userEmail);
+    channel.ack(data);
+    channel.sendToQueue("PRODUCT", Buffer.from(JSON.stringify({ newOrder })));
   });
 });
 

@@ -20,7 +20,7 @@ const isAuthenticated_1 = require("./isAuthenticated");
 const app = (0, express_1.default)();
 const PORT = process.env.PORT_TWO || 8080;
 app.use(express_1.default.json());
-var channel, connection;
+var channel, connection, order;
 mongoose_1.default
     .connect("mongodb://127.0.0.1:27017/product-srv")
     .then(() => {
@@ -59,6 +59,12 @@ app.post("/product/buy", isAuthenticated_1.isAuthenticated, (req, res) => __awai
         products,
         userEmail: req.user.email,
     })));
+    channel.consume("PRODUCT", (data) => {
+        console.log("consuming PRODUCT queue");
+        order = JSON.parse(data.content);
+        channel.ack(data);
+    });
+    return res.json(order);
 }));
 app.listen(PORT, () => {
     console.log(`Product-srv at port: ${PORT}`);

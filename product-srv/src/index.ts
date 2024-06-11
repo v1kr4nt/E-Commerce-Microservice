@@ -9,7 +9,7 @@ const app = express();
 const PORT = process.env.PORT_TWO || 8080;
 app.use(express.json());
 
-var channel: any, connection;
+var channel: any, connection, order: any;
 
 mongoose
   .connect("mongodb://127.0.0.1:27017/product-srv")
@@ -57,6 +57,12 @@ app.post("/product/buy", isAuthenticated, async (req: any, res) => {
       })
     )
   );
+  channel.consume("PRODUCT", (data: any) => {
+    console.log("consuming PRODUCT queue");
+    order = JSON.parse(data.content);
+    channel.ack(data);
+  });
+  return res.json(order);
 });
 
 app.listen(PORT, () => {
